@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -42,7 +39,7 @@
     <div class="mode-card" style="--card-color:var(--neon)" onclick="sel('NORMAL')"><span class="mode-icon">🛡️</span><div class="mode-name">NORMAL</div><div class="mode-desc">Classic</div></div>
     <div class="mode-card" style="--card-color:var(--pink)" onclick="sel('HARD')"><span class="mode-icon">💀</span><div class="mode-name">HARD</div><div class="mode-desc">No armor</div></div>
     <div class="mode-card" style="--card-color:var(--gold)" onclick="sel('PRO')"><span class="mode-icon">🔥</span><div class="mode-name">I AM PRO</div><div class="mode-desc">No mercy</div></div>
-    <div class="mode-card" style="--card-color:var(--purple)" onclick="startBotMode()"><span class="mode-icon">🤖</span><div class="mode-name">BOT WATCH</div><div class="mode-desc">Watch AI play</div></div>
+    <div class="mode-card" style="--card-color:var(--purple)" onclick="showBotScreen()"><span class="mode-icon">🤖</span><div class="mode-name">BOT WATCH</div><div class="mode-desc">Watch AI play</div></div>
     <div class="mode-card" style="--card-color:var(--orange)" onclick="sel('ZEN')"><span class="mode-icon">🌊</span><div class="mode-name">ZEN</div><div class="mode-desc">Chill vibes</div></div>
   </div>
   <div class="section-label">// CHOOSE SKIN //</div>
@@ -52,7 +49,7 @@
     <div class="nav-btn" onclick="showScreen('missions-screen')">📋 MISSIONS</div>
     <div class="nav-btn" onclick="showScreen('settings-screen')">⚙️ SETTINGS</div>
     <div class="nav-btn" onclick="showScreen('shop-screen')">🛒 UPGRADES</div>
-    <div class="nav-btn" onclick="showScreen('bot-screen')">🤖 BOT STATS</div>
+    <div class="nav-btn" onclick="showBotScreen()">🤖 BOT STATS</div>
   </div>
   <div class="scroll-hint">TAP A MODE TO START</div>
 </div>
@@ -187,6 +184,18 @@
     <div class="bot-stat"><div class="bot-stat-num" id="bs-best">0</div><div class="bot-stat-lbl">BEST</div></div>
     <div class="bot-stat"><div class="bot-stat-num" id="bs-avg">0</div><div class="bot-stat-lbl">AVG</div></div>
     <div class="bot-stat"><div class="bot-stat-num" id="bs-fails">0</div><div class="bot-stat-lbl">FAILS</div></div>
+  </div>
+  <div class="input-group" style="width:min(300px,90vw);margin-top:10px;">
+    <label>BOT NAME</label>
+    <input type="text" id="bot-name-input" placeholder="Enter bot name" maxlength="16" onchange="setBotName(this.value)">
+  </div>
+  <div class="upg-card" style="width:min(300px,90vw);margin-top:12px;cursor:default;">
+    <div class="upg-lvl" id="bs-skill-lvl">0/5</div>
+    <div class="upg-icon">🧠</div>
+    <div class="upg-name">BOT SKILL</div>
+    <div class="upg-desc">Faster reactions, fewer panics, better aim</div>
+    <div class="upg-cost" id="bs-skill-cost">💰 150</div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:7px;font-size:.55rem;" id="bs-skill-btn" onclick="buyBotSkill()">UPGRADE (COINS: <span id="bs-coins">0</span>)</button>
   </div>
   <div style="margin:10px 0;opacity:.4;font-size:.6rem;letter-spacing:2px;text-align:center;max-width:300px;">The bot has good days and bad days. Sometimes it panics.</div>
   <button class="btn btn-bot" onclick="startBotMode()" style="margin:8px 0;">▶ WATCH BOT PLAY</button>
