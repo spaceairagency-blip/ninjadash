@@ -41,7 +41,7 @@ const BG_THEMES=[
 let bgThemeIdx=0,bgThemeTick=0;
 
 // BOT
-let botMode=false,botStats={runs:0,best:0,total:0,fails:0};
+let botMode=false,botStats={runs:0,best:0,total:0,fails:0},botName='';
 const BOT_QUIPS=['CALCULATING...','NICE TRY!','PANIC MODE!','OH NO...','SO CLOSE!','UNLUCKY!','ENGAGE!','WATCH THIS!','SMOOTH!','OOPS!','GOT THIS!','PHEW!'];
 let botQuipText='',botQuipTimer=0,botReactDelay=0,botTargetY=0,botPanic=false;
 
@@ -113,6 +113,7 @@ function buildUpgrades(){
     {id:'shield', name:'FORCE SHIELD',icon:'💠',desc:'Start with shield',      maxLvl:3,cost:[200,400,700]},
     {id:'trail',  name:'NEON TRAIL',  icon:'✨',desc:'Epic trail FX',          maxLvl:1,cost:[80]},
     {id:'slow',   name:'BULLET TIME', icon:'⏱️',desc:'More slow-time drops',   maxLvl:2,cost:[200,450]},
+    {id:'botskill',name:'BOT SKILL',  icon:'🧠',desc:'Bot reacts faster & smarter',maxLvl:5,cost:[150,300,500,800,1200]},
   ];
   upgradeData.forEach(u=>{if(upgrades[u.id]===undefined)upgrades[u.id]=0;});
 }
@@ -133,11 +134,11 @@ function buildMissions(){
   ];
 }
 
-function save(){try{localStorage.setItem('nn_save',JSON.stringify({coins,upgrades,missions,leaderboard,settings,selectedSkin,botStats}));}catch(e){}}
+function save(){try{localStorage.setItem('nn_save',JSON.stringify({coins,upgrades,missions,leaderboard,settings,selectedSkin,botStats,botName}));}catch(e){}}
 function load(){
   try{
     const raw=localStorage.getItem('nn_save');
-    if(raw){const d=JSON.parse(raw);coins=d.coins||0;upgrades=d.upgrades||{};if(d.missions)missions=d.missions;if(d.leaderboard)leaderboard=d.leaderboard;if(d.settings)Object.assign(settings,d.settings);if(d.selectedSkin)selectedSkin=d.selectedSkin;if(d.botStats)Object.assign(botStats,d.botStats);}
+    if(raw){const d=JSON.parse(raw);coins=d.coins||0;upgrades=d.upgrades||{};if(d.missions)missions=d.missions;if(d.leaderboard)leaderboard=d.leaderboard;if(d.settings)Object.assign(settings,d.settings);if(d.selectedSkin)selectedSkin=d.selectedSkin;if(d.botStats)Object.assign(botStats,d.botStats);if(d.botName)botName=d.botName;}
     bestScore=parseInt(localStorage.getItem('nn_best')||0);
   }catch(e){}
 }
@@ -265,6 +266,25 @@ function renderBotStats(){
   document.getElementById('bs-avg').textContent=botStats.runs?Math.floor(botStats.total/botStats.runs):0;
   document.getElementById('bs-fails').textContent=botStats.fails;
 }
+function showBotScreen(){renderBotScreen();showScreen('bot-screen');}
+function renderBotScreen(){
+  renderBotStats();
+  document.getElementById('bot-name-input').value=botName;
+  const lvl=upgrades.botskill||0,u=upgradeData.find(x=>x.id==='botskill'),maxed=lvl>=u.maxLvl;
+  document.getElementById('bs-skill-lvl').textContent=maxed?'MAX':lvl+'/'+u.maxLvl;
+  document.getElementById('bs-skill-cost').textContent=maxed?'✓ MAXED':'💰 '+u.cost[lvl];
+  document.getElementById('bs-coins').textContent=coins;
+  const btn=document.getElementById('bs-skill-btn');
+  btn.disabled=maxed;btn.style.opacity=maxed?'.4':'1';
+  if(maxed)btn.innerHTML='MAXED OUT';
+}
+function setBotName(v){botName=(v||'').trim().slice(0,16);save();}
+function buyBotSkill(){
+  const u=upgradeData.find(x=>x.id==='botskill'),lvl=upgrades.botskill||0;
+  if(lvl>=u.maxLvl)return;const cost=u.cost[lvl];
+  if(coins<cost){showNotif('NOT ENOUGH COINS');return;}
+  coins-=cost;upgrades.botskill=lvl+1;save();renderBotScreen();renderShop();showNotif('BOT SKILL UPGRADED! 🧠');
+}
 
 let notifT=null;
 function showNotif(msg){const el=document.getElementById('notif');el.textContent=msg;el.style.opacity='1';clearTimeout(notifT);notifT=setTimeout(()=>el.style.opacity='0',2500);}
@@ -273,7 +293,7 @@ function sel(m){currentMode=m;document.getElementById('mode-title').textContent=
 
 function startBotMode(){
   botMode=true;currentMode='BOT';currentSkin=selectedSkin;targetLevel=0;
-  const name='🤖 BOT-'+Math.floor(Math.random()*900+100);
+  const name=botName?('🤖 '+botName.toUpperCase()):('🤖 BOT-'+Math.floor(Math.random()*900+100));
   document.getElementById('hud-name').textContent=name;
   document.getElementById('ui-mode').textContent='BOT WATCH';
   document.getElementById('bot-badge').style.display='block';
@@ -414,6 +434,7 @@ window.addEventListener('keydown',e=>{
 
 function updateBot(){
   if(!botMode||!active)return;
+  const skill=Math.min(5,upgrades.botskill||0);
   botReactDelay=Math.max(0,botReactDelay-1);
   let nearX=999999,nearGapY=canvas.height/2;
   const pipes=obstacles.filter(o=>o.type==='pipe'&&o.x>player.x+10);
@@ -421,14 +442,16 @@ function updateBot(){
     const firstX=Math.min(...pipes.map(o=>o.x));nearX=firstX;
     const top=pipes.find(o=>o.x===firstX&&o.y===0);const bot=pipes.find(o=>o.x===firstX&&o.y>10);
     if(top&&bot)nearGapY=top.h+((bot.y-top.h)/2);
-    if(Math.random()<0.005){botPanic=true;nearGapY+=((Math.random()-.5)*140);botQuipText=BOT_QUIPS[Math.floor(Math.random()*BOT_QUIPS.length)];botQuipTimer=100;}else botPanic=false;
+    const panicChance=0.005*(1-skill*0.17);
+    if(Math.random()<panicChance){botPanic=true;nearGapY+=((Math.random()-.5)*(140-skill*18));botQuipText=BOT_QUIPS[Math.floor(Math.random()*BOT_QUIPS.length)];botQuipTimer=100;}else botPanic=false;
   }
   botTargetY=nearGapY;
   if(botReactDelay===0){
-    botReactDelay=10+Math.floor(Math.random()*14);
+    botReactDelay=Math.max(2,10-skill*1.4)+Math.floor(Math.random()*Math.max(3,14-skill*2));
     const dist=Math.max(1,nearX-player.x),spd=(modes.BOT.speed+level*0.07),timeFrames=dist/spd;
     const predY=player.y+player.dy*timeFrames+0.5*modes.BOT.grav*timeFrames*timeFrames;
-    if(predY>botTargetY+16&&player.dy>-0.8){player.dy=modes.BOT.j+(botPanic?modes.BOT.j*0.25:0);sndJump();}
+    const margin=Math.max(4,16-skill*2);
+    if(predY>botTargetY+margin&&player.dy>-0.8){player.dy=modes.BOT.j+(botPanic?modes.BOT.j*0.25:0);sndJump();}
   }
   if(player.y<35&&player.dy<0)player.dy=0;
   if(botQuipTimer>0)botQuipTimer--;else if(frame%300===0)botQuipText=BOT_QUIPS[Math.floor(Math.random()*BOT_QUIPS.length)];
