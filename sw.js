@@ -1,5 +1,5 @@
 // ── bump this string every time you deploy a new version ──
-const CACHE = 'ninjadash-v4';
+const CACHE = 'ninjadash-v5';
 
 const ASSETS = [
   './',
