@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,6 +68,20 @@
         <option value="hold">Hold – Float</option>
         <option value="swipe">Swipe Up – Jump</option>
       </select>
+    </div>
+    <div class="input-group"><label>LEVEL GOAL</label>
+      <select id="target-select" onchange="document.getElementById('target-custom-wrap').style.display=this.value==='custom'?'block':'none'">
+        <option value="0">∞ Infinite</option>
+        <option value="5">Target: Level 5</option>
+        <option value="10">Target: Level 10</option>
+        <option value="15">Target: Level 15</option>
+        <option value="20">Target: Level 20</option>
+        <option value="30">Target: Level 30</option>
+        <option value="custom">Custom...</option>
+      </select>
+      <div id="target-custom-wrap" style="display:none;margin-top:8px;">
+        <input type="number" id="target-custom" min="2" max="999" placeholder="Enter target level" value="10">
+      </div>
     </div>
     <div style="display:flex;gap:9px;margin-top:12px;">
       <button class="btn btn-ghost" onclick="showScreen('home-page')" style="flex:1">BACK</button>
