@@ -24,6 +24,7 @@ let currentMode='NORMAL',ctrlMode='tap',currentSkin='default';
 let invTimer=0,slowTimer=0,magnetTimer=0,shieldCharges=0,boostTimer=0;
 let holdingJump=false,swipeStartY=0;
 let gameTime=0,bestScore=0,lastFrameTime=0;
+let targetLevel=0,won=false;
 let settings={scanlines:false,screenShake:true,showControls:true,particles:true,bgStars:true,music:true};
 let upgrades={},upgradeData=[],missions=[],leaderboard=[],selectedSkin='default';
 let loopId=null,bgLoopId=null;
@@ -271,7 +272,7 @@ function showNotif(msg){const el=document.getElementById('notif');el.textContent
 function sel(m){currentMode=m;document.getElementById('mode-title').textContent='// '+m+' MODE //';showScreen('profile-page');}
 
 function startBotMode(){
-  botMode=true;currentMode='BOT';currentSkin=selectedSkin;
+  botMode=true;currentMode='BOT';currentSkin=selectedSkin;targetLevel=0;
   const name='🤖 BOT-'+Math.floor(Math.random()*900+100);
   document.getElementById('hud-name').textContent=name;
   document.getElementById('ui-mode').textContent='BOT WATCH';
@@ -292,6 +293,8 @@ function startBotMode(){
 function launch(){
   const name=document.getElementById('p-name').value||'NINJA';
   ctrlMode=document.getElementById('ctrl-select').value;
+  const tSel=document.getElementById('target-select').value;
+  targetLevel=tSel==='custom'?Math.max(2,parseInt(document.getElementById('target-custom').value)||10):parseInt(tSel)||0;
   currentSkin=selectedSkin;botMode=false;
   document.getElementById('hud-name').textContent=name.toUpperCase();
   document.getElementById('ui-mode').textContent=currentMode;
@@ -313,7 +316,7 @@ function startGame(nm){
   pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
 
   const s=modes[currentMode]||modes.NORMAL;
-  score=0;level=1;frame=0;combo=0;maxCombo=0;sessionCoins=0;gameTime=0;
+  score=0;level=1;frame=0;combo=0;maxCombo=0;sessionCoins=0;gameTime=0;won=false;
   obstacles=[];powerUps=[];particles=[];floatScores=[];
   invTimer=0;slowTimer=0;magnetTimer=0;boostTimer=0;holdingJump=false;
   armor=(s.arm>=99)?99:Math.min(s.arm+(upgrades.armor||0),20);
@@ -489,6 +492,7 @@ function loop(){
     updateArmorPips();showNotif('LEVEL '+level+' 🔥');sndLevelUp();
     spawnParticles(player.x,player.y,22,skinData().color);screenShake(4);
     bgThemeIdx=(bgThemeIdx+1)%BG_THEMES.length;bgThemeTick=0;
+    if(targetLevel>0&&level>=targetLevel&&!botMode){winGame();return;}
   }
 
   const spawnInt=Math.max(56,84-level*2);
@@ -524,8 +528,8 @@ function loop(){
       if(o.type==='ball'){const cx=player.x+player.w/2,cy=player.y+player.h/2,ox=o.x+o.w/2,oy=o.y+o.h/2,dx=cx-ox,dy=cy-oy;hit=Math.sqrt(dx*dx+dy*dy)<(player.w/2+o.w/2-3);}
       else{hit=(player.x+3<o.x+o.w)&&(player.x+player.w-3>o.x)&&(player.y+3<o.y+o.h)&&(player.y+player.h-3>o.y);}
       if(hit){
-        if(armor>=99){invTimer=55;combo=0;obstacles=[];player.dy=s.j*0.7;screenShake(5);spawnParticles(player.x,player.y,12,skinData().color);sndHit();showNotif(currentMode==='ZEN'?'💫 PHASED!':'🍼 BOUNCE!');}
-        else if(armor>0){invTimer=85;armor--;combo=0;obstacles=[];updateArmorPips();screenShake(9);spawnParticles(player.x,player.y,20,skinData().color);sndHit();showNotif('💥 ARMOR LOST!');if(botMode){botQuipText='OUCH!';botQuipTimer=70;}}
+        if(armor>=99){invTimer=55;combo=0;obstacles.length=0;player.dy=s.j*0.7;screenShake(5);spawnParticles(player.x,player.y,12,skinData().color);sndHit();showNotif(currentMode==='ZEN'?'💫 PHASED!':'🍼 BOUNCE!');break;}
+        else if(armor>0){invTimer=85;armor--;combo=0;obstacles.length=0;updateArmorPips();screenShake(9);spawnParticles(player.x,player.y,20,skinData().color);sndHit();showNotif('💥 ARMOR LOST!');if(botMode){botQuipText='OUCH!';botQuipTimer=70;}break;}
         else{die();return;}
       }
     }
@@ -548,7 +552,7 @@ function loop(){
 
   updateMissions();renderPowerUpHUD();
   document.getElementById('ui-score').textContent=Math.floor(score);
-  document.getElementById('ui-lvl').textContent=level;
+  document.getElementById('ui-lvl').textContent=targetLevel>0?(level+' / '+targetLevel):level;
   document.getElementById('score-bar').style.width=((score%180)/180*100)+'%';
 
   draw();frame++;
@@ -666,6 +670,27 @@ function drawStar(ctx,cx,cy,pts,or,ir){
   ctx.beginPath();
   for(let i=0;i<pts*2;i++){const r=i%2===0?or:ir,a=Math.PI/pts*i-Math.PI/2;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
   ctx.closePath();ctx.fill();
+}
+
+function winGame(){
+  if(!active)return;active=false;won=true;cancelAnimationFrame(loopId);loopId=null;stopMusic();
+  const fs=Math.floor(score),isNew=fs>bestScore;
+  if(isNew){bestScore=fs;localStorage.setItem('nn_best',bestScore);}
+  document.getElementById('death-title-txt').textContent='🏆 GOAL REACHED!';
+  const nm=document.getElementById('hud-name').textContent;
+  leaderboard.push({name:nm,score:fs,level,mode:currentMode,time:Math.floor(gameTime)});
+  leaderboard.sort((a,b)=>b.score-a.score);if(leaderboard.length>20)leaderboard.length=20;
+  coins+=sessionCoins;
+  const m1=missions.find(m=>m.id==='m1');if(m1&&!m1.done){m1.prog=1;m1.done=true;coins+=m1.reward;}
+  document.getElementById('death-msg').textContent=nm+' CLEARED LEVEL '+targetLevel+'!';
+  save();
+  sndLevelUp();spawnParticles(player.x,player.y,40,skinData().color);screenShake(6);
+  document.getElementById('d-score').textContent=fs;document.getElementById('d-level').textContent=level;
+  document.getElementById('d-best').textContent=bestScore;
+  document.getElementById('d-coins').textContent=sessionCoins;
+  document.getElementById('d-time').textContent=Math.floor(gameTime)+'s';document.getElementById('d-combo').textContent=maxCombo+'x';
+  document.getElementById('new-best-badge').style.display=isNew?'block':'none';
+  showScreen('death-screen');renderLeaderboard();renderMissions();renderShop();
 }
 
 function die(quit=false){
