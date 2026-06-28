@@ -1,0 +1,192 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#00f2ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NinjaDash">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>NINJADASH ∞</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- UPDATE BANNER -->
+<div id="update-banner">
+  <span class="ub-text">⚡ A NEW VERSION OF NINJADASH IS READY</span>
+  <button class="ub-refresh" onclick="applyUpdate()">REFRESH NOW</button>
+  <button class="ub-later" onclick="document.getElementById('update-banner').classList.remove('show')">LATER</button>
+</div>
+<div id="game-container" style="position:relative;width:100vw;height:100vh;overflow:hidden;">
+<canvas id="partCanvas"></canvas>
+<canvas id="gameCanvas"></canvas>
+<div id="scanlines"></div>
+<div id="combo-display"></div>
+<div id="notif"></div>
+<div id="touch-jump-zone"></div>
+
+<!-- HOME -->
+<div id="home-page" class="overlay">
+  <div class="logo">NINJADASH</div>
+  <div class="logo-sub">∞ INFINITY PRO ∞</div>
+  <div class="section-label">// SELECT MODE //</div>
+  <div class="card-grid">
+    <div class="mode-card" style="--card-color:var(--green)" onclick="sel('BABY')"><span class="mode-icon">👶</span><div class="mode-name">BABY</div><div class="mode-desc">Auto-bounce</div></div>
+    <div class="mode-card" style="--card-color:var(--neon)" onclick="sel('NORMAL')"><span class="mode-icon">🛡️</span><div class="mode-name">NORMAL</div><div class="mode-desc">Classic</div></div>
+    <div class="mode-card" style="--card-color:var(--pink)" onclick="sel('HARD')"><span class="mode-icon">💀</span><div class="mode-name">HARD</div><div class="mode-desc">No armor</div></div>
+    <div class="mode-card" style="--card-color:var(--gold)" onclick="sel('PRO')"><span class="mode-icon">🔥</span><div class="mode-name">I AM PRO</div><div class="mode-desc">No mercy</div></div>
+    <div class="mode-card" style="--card-color:var(--purple)" onclick="startBotMode()"><span class="mode-icon">🤖</span><div class="mode-name">BOT WATCH</div><div class="mode-desc">Watch AI play</div></div>
+    <div class="mode-card" style="--card-color:var(--orange)" onclick="sel('ZEN')"><span class="mode-icon">🌊</span><div class="mode-name">ZEN</div><div class="mode-desc">Chill vibes</div></div>
+  </div>
+  <div class="section-label">// CHOOSE SKIN //</div>
+  <div class="skin-grid" id="skin-grid"></div>
+  <div class="nav-bar">
+    <div class="nav-btn" onclick="showScreen('lb-screen')">🏆 BOARD</div>
+    <div class="nav-btn" onclick="showScreen('missions-screen')">📋 MISSIONS</div>
+    <div class="nav-btn" onclick="showScreen('settings-screen')">⚙️ SETTINGS</div>
+    <div class="nav-btn" onclick="showScreen('shop-screen')">🛒 UPGRADES</div>
+    <div class="nav-btn" onclick="showScreen('bot-screen')">🤖 BOT STATS</div>
+  </div>
+  <div class="scroll-hint">TAP A MODE TO START</div>
+</div>
+
+<!-- PROFILE -->
+<div id="profile-page" class="overlay" style="display:none">
+  <div class="modal">
+    <h2 id="mode-title">// SETUP //</h2>
+    <div class="input-group"><label>PILOT NAME</label><input type="text" id="p-name" placeholder="Enter callsign" maxlength="16"></div>
+    <div class="input-group"><label>CONTROL STYLE</label>
+      <select id="ctrl-select">
+        <option value="tap">Tap / Space – Jump</option>
+        <option value="hold">Hold – Float</option>
+        <option value="swipe">Swipe Up – Jump</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:9px;margin-top:12px;">
+      <button class="btn btn-ghost" onclick="showScreen('home-page')" style="flex:1">BACK</button>
+      <button class="btn btn-primary" onclick="launch()" style="flex:2">ENGAGE ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-left"><div class="hud-lbl">PILOT</div><div class="hud-val" id="hud-name">NINJA</div><div id="armor-pips" class="armor-pips"></div></div>
+  <div class="hud-center"><div class="hud-lbl">SCORE</div><div class="hud-val" id="ui-score">0</div><div id="score-bar-wrap"><div id="score-bar"></div></div></div>
+  <div class="hud-right" style="align-items:flex-end"><div class="hud-lbl">LEVEL</div><div class="hud-val" id="ui-lvl" style="color:var(--gold)">1</div><div style="font-size:.48rem;opacity:.4;margin-top:1px;" id="ui-mode">NORMAL</div></div>
+</div>
+<div id="bot-badge">🤖 BOT IS PLAYING — WATCH!</div>
+<button id="p-btn" onclick="togglePause()">⏸</button>
+<button id="vol-btn" onclick="toggleMute()">🔊</button>
+<div id="powerup-list" class="powerup-list"></div>
+<div id="ctrl-overlay">
+  <div class="ctrl-btn" id="btn-jump" ontouchstart="mobileJump(event)" ontouchend="mobileJumpEnd()">⬆</div>
+  <div class="ctrl-btn" id="btn-shield" ontouchstart="useShieldBtn(event)">🛡</div>
+  <div class="ctrl-btn" id="btn-boost" ontouchstart="useBoostBtn(event)">⚡</div>
+</div>
+
+<!-- DEATH -->
+<div id="death-screen" class="overlay" style="display:none;">
+  <div class="death-title" id="death-title-txt">MISSION FAILED</div>
+  <div id="death-msg" style="opacity:.5;font-size:.72rem;letter-spacing:3px;margin-bottom:12px;"></div>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="stat-num" id="d-score">0</div><div class="stat-name">SCORE</div></div>
+    <div class="stat-box"><div class="stat-num" id="d-level">1</div><div class="stat-name">LEVEL</div></div>
+    <div class="stat-box"><div class="stat-num" id="d-best">0</div><div class="stat-name">BEST</div></div>
+    <div class="stat-box"><div class="stat-num" id="d-coins">0</div><div class="stat-name">COINS</div></div>
+    <div class="stat-box"><div class="stat-num" id="d-time">0s</div><div class="stat-name">TIME</div></div>
+    <div class="stat-box"><div class="stat-num" id="d-combo">0</div><div class="stat-name">COMBO</div></div>
+  </div>
+  <div id="new-best-badge" style="color:var(--gold);font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:3px;display:none;margin-bottom:7px;">★ NEW RECORD ★</div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:7px;">
+    <button class="btn btn-primary" onclick="relaunch()">RETRY</button>
+    <button class="btn btn-ghost" onclick="showScreen('home-page');resetAll()">HOME</button>
+    <button class="btn btn-ghost" onclick="showScreen('shop-screen')">UPGRADE</button>
+  </div>
+</div>
+
+<!-- PAUSE -->
+<div id="pause-screen" class="overlay" style="display:none;">
+  <div class="pause-title">PAUSED</div>
+  <div style="opacity:.4;font-size:.68rem;letter-spacing:3px;margin-bottom:18px;" id="pause-info"></div>
+  <div style="display:flex;flex-direction:column;gap:8px;width:200px;">
+    <button class="btn btn-primary" onclick="togglePause()">▶ RESUME</button>
+    <button class="btn btn-ghost" onclick="showScreen('shop-screen')">🛒 UPGRADE</button>
+    <button class="btn btn-ghost" onclick="showScreen('missions-screen')">📋 MISSIONS</button>
+    <button class="btn btn-danger" onclick="confirmQuit()">✕ QUIT</button>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div id="shop-screen" class="overlay" style="display:none;">
+  <div style="display:flex;align-items:center;gap:12px;width:min(440px,94vw);margin-bottom:12px;">
+    <div style="flex:1"><div style="font-family:'Orbitron',sans-serif;font-size:.9rem;letter-spacing:4px;">UPGRADES</div><div style="font-size:.58rem;opacity:.4;margin-top:1px;">COINS: <span id="shop-coins" style="color:var(--gold);font-weight:700">0</span></div></div>
+    <div class="nav-btn" onclick="closeShop()">✕ CLOSE</div>
+  </div>
+  <div class="upgrade-grid" id="upgrade-grid"></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="lb-screen" class="overlay" style="display:none;">
+  <div style="font-family:'Orbitron',sans-serif;font-size:.9rem;letter-spacing:4px;margin-bottom:4px;">HALL OF FAME</div>
+  <div style="opacity:.3;font-size:.56rem;letter-spacing:3px;margin-bottom:12px;">LOCAL RECORDS</div>
+  <div class="lb-list" id="lb-list"></div>
+  <button class="btn btn-ghost" style="margin-top:12px;" onclick="showScreen('home-page')">← BACK</button>
+</div>
+
+<!-- MISSIONS -->
+<div id="missions-screen" class="overlay" style="display:none;">
+  <div style="font-family:'Orbitron',sans-serif;font-size:.9rem;letter-spacing:4px;margin-bottom:4px;">MISSIONS</div>
+  <div style="opacity:.3;font-size:.56rem;letter-spacing:3px;margin-bottom:12px;">COMPLETE FOR COINS</div>
+  <div class="mission-list" id="mission-list"></div>
+  <button class="btn btn-ghost" style="margin-top:12px;" onclick="showScreen('home-page')">← BACK</button>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-screen" class="overlay" style="display:none;">
+  <div style="font-family:'Orbitron',sans-serif;font-size:.9rem;letter-spacing:4px;margin-bottom:16px;">SETTINGS</div>
+  <div id="settings-rows"></div>
+  <div style="margin-top:14px;width:min(380px,94vw);">
+    <button class="btn btn-ghost" style="width:100%;" onclick="checkForUpdates()">⟳ CHECK FOR UPDATES</button>
+  </div>
+  <div style="margin-top:18px;width:min(380px,94vw);padding-top:14px;border-top:1px solid rgba(255,45,85,.2);">
+    <div style="font-size:.55rem;letter-spacing:3px;opacity:.35;margin-bottom:8px;">DANGER ZONE</div>
+    <button class="btn btn-danger" style="width:100%;" onclick="clearAllData()">🗑 CLEAR ALL DATA</button>
+    <div style="font-size:.5rem;opacity:.28;margin-top:6px;text-align:center;letter-spacing:1px;">Resets coins, upgrades, leaderboard & missions</div>
+  </div>
+  <button class="btn btn-ghost" style="margin-top:14px;" onclick="showScreen('home-page')">← BACK</button>
+</div>
+
+<!-- BOT STATS -->
+<div id="bot-screen" class="overlay" style="display:none;">
+  <div style="font-family:'Orbitron',sans-serif;font-size:.9rem;letter-spacing:4px;margin-bottom:4px;">🤖 BOT STATS</div>
+  <div style="opacity:.3;font-size:.56rem;letter-spacing:3px;margin-bottom:12px;">THE AI'S TRACK RECORD</div>
+  <div class="bot-stat-row">
+    <div class="bot-stat"><div class="bot-stat-num" id="bs-runs">0</div><div class="bot-stat-lbl">RUNS</div></div>
+    <div class="bot-stat"><div class="bot-stat-num" id="bs-best">0</div><div class="bot-stat-lbl">BEST</div></div>
+    <div class="bot-stat"><div class="bot-stat-num" id="bs-avg">0</div><div class="bot-stat-lbl">AVG</div></div>
+    <div class="bot-stat"><div class="bot-stat-num" id="bs-fails">0</div><div class="bot-stat-lbl">FAILS</div></div>
+  </div>
+  <div style="margin:10px 0;opacity:.4;font-size:.6rem;letter-spacing:2px;text-align:center;max-width:300px;">The bot has good days and bad days. Sometimes it panics.</div>
+  <button class="btn btn-bot" onclick="startBotMode()" style="margin:8px 0;">▶ WATCH BOT PLAY</button>
+  <button class="btn btn-ghost" onclick="showScreen('home-page')">← BACK</button>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="ib-icon">🎮</div>
+  <div class="ib-text"><div class="ib-title">INSTALL NINJADASH</div><div class="ib-sub">Play offline · Full screen · No browser bar</div></div>
+  <button class="btn btn-primary" style="padding:9px 14px;font-size:.55rem;" onclick="installPWA()">INSTALL</button>
+  <button class="ib-close" onclick="dismissInstall()">✕</button>
+</div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
